@@ -11,7 +11,7 @@ using Volo.Abp.Validation;
 
 namespace WhyzrOnBoarding.Products
 {
-    public class ProductAppService_Tests: WhyzrOnBoardingApplicationTestBase
+    public class ProductAppService_Tests : WhyzrOnBoardingApplicationTestBase
     {
         private readonly IProductAppService _productAppService;
 
@@ -168,7 +168,7 @@ namespace WhyzrOnBoarding.Products
                         OptionA = "model"
                     }
                 );
-              
+
             });
             exception.ValidationErrors
                 .ShouldContain(err => err.MemberNames.Any(m => m == "Name"));
@@ -191,7 +191,7 @@ namespace WhyzrOnBoarding.Products
                     product.Id,
                     new CreateUpdateProductDto
                     {
-                        Id =Guid.Empty,
+                        Id = Guid.Empty,
                         Name = "",
                         OptionA = "model"
                     }
@@ -216,87 +216,115 @@ namespace WhyzrOnBoarding.Products
           }
       );
 
-            var result = await _productAppService.UpdateAsync(
-                Guid.NewGuid(),
-                new CreateUpdateProductDto
-                {
-                    Id = product.Id,
-                    Name = "",
-                    OptionA = "model"
-                }
-            );
+                var result = await _productAppService.UpdateAsync(
+                    Guid.NewGuid(),
+                    new CreateUpdateProductDto
+                    {
+                        Id = product.Id,
+                        Name = "",
+                        OptionA = "model"
+                    }
+                );
 
-        });
+            });
             exception.ValidationErrors
                 .ShouldContain(err => err.MemberNames.Any(m => m == "Id"));
 
         }
 
 
-        
+
         [Fact]
-        public async Task Should_Update_Product_With_new_Variant()
+        public async Task Should_Update_Product_With_CRUD_Variant()
         {
             //Act
+            List<CreateUpdateVariantDto> listVariants = new List<CreateUpdateVariantDto> {
+                new CreateUpdateVariantDto { Price = 300, ValueOPtionA = "blue" },
+                new CreateUpdateVariantDto { Price = 400, ValueOPtionA = "green" },
+                new CreateUpdateVariantDto { Price = 500, ValueOPtionA = "black" }
+            };
+
             var product = await _productAppService.CreateAsync(
                 new CreateUpdateProductDto
                 {
-                    Name = "Should_Update_Product_With_new_Variant",
-                    OptionA = "color"
+                    Name = "Should_Update_Product_With_CRUD_Variant",
+                    OptionA = "color",
+                    variants = listVariants
                 }
             );
 
-            //variant
-            var existVarinat = product.variants.FirstOrDefault();
-            List<CreateUpdateVariantDto> listVariants = new List<CreateUpdateVariantDto>();
-            CreateUpdateVariantDto variantDto = new CreateUpdateVariantDto { Price = 250, ValueOPtionA = "brown" };
-            CreateUpdateVariantDto variantDto2 = new CreateUpdateVariantDto { Id = existVarinat.Id, Price = existVarinat.Price, ValueOPtionA = existVarinat.ValueOPtionA };
-            listVariants.Add(variantDto);
-            listVariants.Add(variantDto2);
+            var firstVariant = product.variants.Where(x => x.ValueOPtionA == "blue").FirstOrDefault();
+            var secondVariant = product.variants.Where(x => x.ValueOPtionA == "green").FirstOrDefault();
+
+            listVariants = new List<CreateUpdateVariantDto> {
+                new CreateUpdateVariantDto { Id=firstVariant.Id, Price = firstVariant.Price, ValueOPtionA = firstVariant.ValueOPtionA },
+                new CreateUpdateVariantDto { Id=secondVariant.Id, Price = 600, ValueOPtionA = "brown" },
+                new CreateUpdateVariantDto { Price = 700, ValueOPtionA = "red" }
+            };
 
             var result = await _productAppService.UpdateAsync(
                 product.Id,
                 new CreateUpdateProductDto
                 {
                     Id = product.Id,
-                    Name = product.Name,
+                    Name = "Should_Update_Product_With_CRUD_Variant_After_Update",
                     OptionA = product.OptionA,
                     variants = listVariants
                 }
             );
             //Assert
             result.Id.ShouldNotBe(Guid.Empty);
-            result.Name.ShouldBe("test update Product with add variant");
+            result.Name.ShouldBe("Should_Update_Product_With_CRUD_Variant_After_Update");
             result.OptionA.ShouldBe("color");
-            result.variants.Count.ShouldBeGreaterThan(1);
-            result.variants.ShouldContain(c => c.Price == 250);
-            result.variants.ShouldContain(c => c.ValueOPtionA == "brown");
-        }
 
+            result.variants.Count.ShouldBeGreaterThanOrEqualTo(3);
 
-        [Fact]
-        public async Task Should_Update_Product_With_Update_Variant()
-        {
+            result.variants.ShouldContain(c => c.Price == 300 || c.Price == 600 || c.Price == 700);
+            result.variants.ShouldNotContain(c => c.Price == 400 && c.Price == 500);
 
-        }
-
-
-        [Fact]
-        public async Task Should_Update_Product_With_Removr_Variant()
-        {
+            result.variants.ShouldContain(c => c.ValueOPtionA == "blue" || c.ValueOPtionA == "brown" || c.ValueOPtionA == "red");
+            result.variants.ShouldNotContain(c => c.ValueOPtionA == "green" && c.ValueOPtionA == "black");
 
         }
 
-        [Fact]
-        public async Task Should_Update_Product_With_Crud_Variant()
-        {
 
-        }
 
         [Fact]
-        public async Task Should_Update_Product_With_Error_Id__Variant()
+        public async Task Should_No_Update_Product_With_Error_Id__Variant()
         {
+            var exception = await Assert.ThrowsAsync<AbpValidationException>(async () =>
+            {
+                List<CreateUpdateVariantDto> listVariants = new List<CreateUpdateVariantDto> {
+                new CreateUpdateVariantDto { Price = 300, ValueOPtionA = "blue" },
+            };
 
+                var product = await _productAppService.CreateAsync(
+                  new CreateUpdateProductDto
+                  {
+                      Name = "Should_No_Update_Product_With_Error_Id__Variant",
+                      OptionA = "size",
+                      variants = listVariants
+                  }
+              );
+
+                var variant = product.variants.Where(x => x.ValueOPtionA == "blue").FirstOrDefault();
+
+                listVariants = new List<CreateUpdateVariantDto> {
+                new CreateUpdateVariantDto { Id=Guid.NewGuid(), Price = variant.Price, ValueOPtionA = variant.ValueOPtionA }
+            };
+                var result = await _productAppService.UpdateAsync(
+                    product.Id,
+                    new CreateUpdateProductDto
+                    {
+                        Id = product.Id,
+                        Name = product.Name,
+                        OptionA = product.OptionA,
+                        variants = listVariants
+                    }
+                );
+
+            });
+            exception.ValidationErrors.ShouldContain(err => err.MemberNames.Any(m => m == "Id"));
         }
 
         /////Delete
@@ -313,7 +341,7 @@ namespace WhyzrOnBoarding.Products
             );
 
             await _productAppService.DeleteAsync(product.Id);
-            
+
             var result = await _productAppService.GetAsync(product.Id);
 
             //Assert

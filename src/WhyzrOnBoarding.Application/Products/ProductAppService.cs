@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Localization;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -23,12 +24,15 @@ namespace WhyzrOnBoarding.Products
     {
 
         private IRepository<Variant, Guid> _variantsRepository;
+        private readonly IStringLocalizer<ProductAppService> _localizer;
 
+      
         public ProductAppService(IRepository<Product, Guid> productRepository,
-            IRepository<Variant, Guid> variantsRepository)
+            IRepository<Variant, Guid> variantsRepository, IStringLocalizer<ProductAppService> localizer)
             : base(productRepository)
         {
             _variantsRepository = variantsRepository;
+            _localizer = localizer;
         }
 
         public override async Task<PagedResultDto<ProductDto>> GetListAsync(PagedAndSortedResultRequestDto input)
@@ -69,7 +73,7 @@ namespace WhyzrOnBoarding.Products
 
             if (errorList.Count > 0)
             {
-                var exceptionList = errorList.Select(x => new Exception(L[x.ErrorMessage])).ToList();
+                var exceptionList = errorList.Select(x => new Exception(_localizer[x.ErrorMessage])).ToList();
                 throw new AggregateException(exceptionList);
             }
 
@@ -205,8 +209,9 @@ namespace WhyzrOnBoarding.Products
             if (errorList.Count > 0)
             {
                 //throw errors
-                var exceptionList = errorList.Select(x => new Exception(L[x.ErrorMessage])).ToList();
-                throw new ValidationException("");
+                ValidationException validationException = new ValidationException("Validation Exception");
+                validationException.Data.Add("result of validationException", errorList);
+                throw validationException;
             }
 
             //handle deleted variant
@@ -287,7 +292,7 @@ namespace WhyzrOnBoarding.Products
             //Not imporatant
             if (input.Id != Guid.Empty)
             {
-                ListOfErrorsVariant.Add(new ValidationResult(L[ProductsConst.ProductsError.ErrorNewVariantShouldNotHaveId]));
+                ListOfErrorsVariant.Add(new ValidationResult(_localizer[ProductsConst.ProductsError.ErrorNewVariantShouldNotHaveId], new string[] { "Variant" + nameof(input.Id) }));
             }
             return ListOfErrorsVariant;
         }
@@ -298,16 +303,17 @@ namespace WhyzrOnBoarding.Products
 
             if (id == Guid.Empty)
             {
-                ListOfErrors.Add(new ValidationResult(L[ProductsConst.ProductsError.ErrorIdIsEmpty]));
+                ListOfErrors.Add(new ValidationResult(_localizer[ProductsConst.ProductsError.ErrorIdIsEmpty], new string[] { nameof(id) }));
             }
             if (id != input.Id)
             {
-                ListOfErrors.Add(new ValidationResult(L[ProductsConst.ProductsError.ErrorIdSentNotEqualIdInput, id, input.Id])); ;
+                string[] properties = new string[] { nameof(id) };
+                ListOfErrors.Add(new ValidationResult(_localizer[ProductsConst.ProductsError.ErrorIdSentNotEqualIdInput, id, input.Id], new string[] { nameof(id) })); ;
             }
 
             if (product == null)
             {
-                ListOfErrors.Add(new ValidationResult(L[ProductsConst.ProductsError.ErrorProductNotFound, id]));
+                ListOfErrors.Add(new ValidationResult(_localizer[ProductsConst.ProductsError.ErrorProductNotFound, id], new string[] { nameof(product) }));
                 return ListOfErrors;
             }
             //valid variant
@@ -333,7 +339,7 @@ namespace WhyzrOnBoarding.Products
             {
                 if (!input.Id.IsIn(oldVariantIds))
                 {
-                    ListOfErrorsVariant.Add(new ValidationResult(L[ProductsConst.ProductsError.ErrorIdVariantIsNotExist, input.Id]));
+                    ListOfErrorsVariant.Add(new ValidationResult(_localizer[ProductsConst.ProductsError.ErrorIdVariantIsNotExist, input.Id], new string[] { "Variant "+nameof(input.Id) }));
                 }
             }
             return ListOfErrorsVariant;
