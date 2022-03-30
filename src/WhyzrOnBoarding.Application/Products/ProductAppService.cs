@@ -162,7 +162,7 @@ namespace WhyzrOnBoarding.Products
             {
                 var variant = new Variant
                 {
-                    ProductId = entity.Id,
+                    //ProductId = entity.Id,
                     Price = x.Price,
                     Sku = x.Sku,
 
@@ -188,7 +188,9 @@ namespace WhyzrOnBoarding.Products
 
             if (entity.variants.IsNullOrEmpty())
             {
-                entity.variants.Add(new Variant());
+                Variant DefaultVariant = new Variant();
+                DefaultVariant.sentId(GuidGenerator.Create());
+                entity.variants.Add(DefaultVariant);
             }
             return Task.CompletedTask;
         }

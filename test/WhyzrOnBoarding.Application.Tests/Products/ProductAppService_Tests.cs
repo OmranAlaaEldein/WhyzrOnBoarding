@@ -7,6 +7,7 @@ using Xunit;
 using Volo.Abp.Application.Dtos;
 using Shouldly;
 using AutoMapper;
+using Volo.Abp.Validation;
 
 namespace WhyzrOnBoarding.Products
 {
@@ -54,31 +55,8 @@ namespace WhyzrOnBoarding.Products
         }
 
 
-        [Fact]
-        public async Task Should_Create_A_Valid_Product()
-        {
-            List<CreateUpdateVariantDto> listVariants = new List<CreateUpdateVariantDto>();
-            CreateUpdateVariantDto variantDto = new CreateUpdateVariantDto { Price = 100, ValueOPtionA = "red" };
-            listVariants.Add(variantDto);
-            //Act
-            var result = await _productAppService.CreateAsync(
-                new CreateUpdateProductDto
-                {
-                    Name = "New test Product",
-                    OptionA = "color",
-                    variants= listVariants
-                }
-            );
 
-            //Assert
-            result.Id.ShouldNotBe(Guid.Empty);
-            result.Name.ShouldBe("New test Product");
-            result.OptionA.ShouldBe("color");
-            result.variants.Count.ShouldBeGreaterThan(0);
-            result.variants.ShouldContain(c=>c.Price==100);
-            result.variants.ShouldContain(c => c.ValueOPtionA == "red");
-        }
-
+        //create
         [Fact]
         public async Task Should_Create_A_Valid_Product_With_Empty_List_Variant()
         {
@@ -99,6 +77,49 @@ namespace WhyzrOnBoarding.Products
         }
 
         [Fact]
+        public async Task Should_Create__Product_With_Variant()
+        {
+            List<CreateUpdateVariantDto> listVariants = new List<CreateUpdateVariantDto>();
+            CreateUpdateVariantDto variantDto = new CreateUpdateVariantDto { Price = 100, ValueOPtionA = "red" };
+            listVariants.Add(variantDto);
+            //Act
+            var result = await _productAppService.CreateAsync(
+                new CreateUpdateProductDto
+                {
+                    Name = "New test Product",
+                    OptionA = "color",
+                    variants = listVariants
+                }
+            );
+
+            //Assert
+            result.Id.ShouldNotBe(Guid.Empty);
+            result.Name.ShouldBe("New test Product");
+            result.OptionA.ShouldBe("color");
+            result.variants.Count.ShouldBeGreaterThan(0);
+            result.variants.ShouldContain(c => c.Price == 100);
+            result.variants.ShouldContain(c => c.ValueOPtionA == "red");
+        }
+
+        [Fact]
+        public async Task Should_No_Create_Product_With_Empty_Name()
+        {
+            var exception = await Assert.ThrowsAsync<AbpValidationException>(async () =>
+            {
+                await _productAppService.CreateAsync(
+                new CreateUpdateProductDto
+                {
+                    Name = "Should_No_Create_Product_With_Empty_Name",
+                    OptionA = "size"
+                }
+            );
+            });
+            exception.ValidationErrors
+             .ShouldContain(err => err.MemberNames.Any(m => m == "Name"));
+        }
+
+        //Update
+        [Fact]
         public async Task Should_Update_Product()
         {
             //Act
@@ -109,12 +130,12 @@ namespace WhyzrOnBoarding.Products
                     OptionA = "size"
                 }
             );
-            
+
             var result = await _productAppService.UpdateAsync(
                 product.Id,
                 new CreateUpdateProductDto
                 {
-                    Id=product.Id,
+                    Id = product.Id,
                     Name = "update Product",
                     OptionA = "model"
                 }
@@ -126,13 +147,101 @@ namespace WhyzrOnBoarding.Products
         }
 
         [Fact]
+        public async Task Should_No_Update_Product_With_Empty_Name()
+        {
+            var exception = await Assert.ThrowsAsync<AbpValidationException>(async () =>
+            {
+                var product = await _productAppService.CreateAsync(
+              new CreateUpdateProductDto
+              {
+                  Name = "Should_No_Update_Product_With_Empty_Name",
+                  OptionA = "size"
+              }
+          );
+
+                var result = await _productAppService.UpdateAsync(
+                    product.Id,
+                    new CreateUpdateProductDto
+                    {
+                        Id = product.Id,
+                        Name = "",
+                        OptionA = "model"
+                    }
+                );
+              
+            });
+            exception.ValidationErrors
+                .ShouldContain(err => err.MemberNames.Any(m => m == "Name"));
+        }
+
+        [Fact]
+        public async Task Should_No_Update_Product_With_Id_Empty()
+        {
+            var exception = await Assert.ThrowsAsync<AbpValidationException>(async () =>
+            {
+                var product = await _productAppService.CreateAsync(
+              new CreateUpdateProductDto
+              {
+                  Name = "Should_No_Update_Product_With_Id_Empty",
+                  OptionA = "size"
+              }
+          );
+
+                var result = await _productAppService.UpdateAsync(
+                    product.Id,
+                    new CreateUpdateProductDto
+                    {
+                        Id =Guid.Empty,
+                        Name = "",
+                        OptionA = "model"
+                    }
+                );
+
+            });
+            exception.ValidationErrors
+                .ShouldContain(err => err.MemberNames.Any(m => m == "Id"));
+
+        }
+
+        [Fact]
+        public async Task Should_Update_Product_With_Id_Not_Exist()
+        {
+            var exception = await Assert.ThrowsAsync<AbpValidationException>(async () =>
+            {
+                var product = await _productAppService.CreateAsync(
+          new CreateUpdateProductDto
+          {
+              Name = "Should_Update_Product_With_Id_Not_Exist",
+              OptionA = "size"
+          }
+      );
+
+            var result = await _productAppService.UpdateAsync(
+                Guid.NewGuid(),
+                new CreateUpdateProductDto
+                {
+                    Id = product.Id,
+                    Name = "",
+                    OptionA = "model"
+                }
+            );
+
+        });
+            exception.ValidationErrors
+                .ShouldContain(err => err.MemberNames.Any(m => m == "Id"));
+
+        }
+
+
+        
+        [Fact]
         public async Task Should_Update_Product_With_new_Variant()
         {
             //Act
             var product = await _productAppService.CreateAsync(
                 new CreateUpdateProductDto
                 {
-                    Name = "test update Product with add variant",
+                    Name = "Should_Update_Product_With_new_Variant",
                     OptionA = "color"
                 }
             );
@@ -141,7 +250,7 @@ namespace WhyzrOnBoarding.Products
             var existVarinat = product.variants.FirstOrDefault();
             List<CreateUpdateVariantDto> listVariants = new List<CreateUpdateVariantDto>();
             CreateUpdateVariantDto variantDto = new CreateUpdateVariantDto { Price = 250, ValueOPtionA = "brown" };
-            CreateUpdateVariantDto variantDto2 = new CreateUpdateVariantDto {Id= existVarinat.Id, Price = existVarinat.Price, ValueOPtionA = existVarinat.ValueOPtionA };
+            CreateUpdateVariantDto variantDto2 = new CreateUpdateVariantDto { Id = existVarinat.Id, Price = existVarinat.Price, ValueOPtionA = existVarinat.ValueOPtionA };
             listVariants.Add(variantDto);
             listVariants.Add(variantDto2);
 
@@ -152,7 +261,7 @@ namespace WhyzrOnBoarding.Products
                     Id = product.Id,
                     Name = product.Name,
                     OptionA = product.OptionA,
-                    variants= listVariants
+                    variants = listVariants
                 }
             );
             //Assert
@@ -164,6 +273,33 @@ namespace WhyzrOnBoarding.Products
             result.variants.ShouldContain(c => c.ValueOPtionA == "brown");
         }
 
+
+        [Fact]
+        public async Task Should_Update_Product_With_Update_Variant()
+        {
+
+        }
+
+
+        [Fact]
+        public async Task Should_Update_Product_With_Removr_Variant()
+        {
+
+        }
+
+        [Fact]
+        public async Task Should_Update_Product_With_Crud_Variant()
+        {
+
+        }
+
+        [Fact]
+        public async Task Should_Update_Product_With_Error_Id__Variant()
+        {
+
+        }
+
+        /////Delete
         [Fact]
         public async Task Should_Delete_Product()
         {
