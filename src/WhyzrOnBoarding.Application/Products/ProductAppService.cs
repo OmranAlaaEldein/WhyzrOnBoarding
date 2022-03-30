@@ -33,21 +33,24 @@ namespace WhyzrOnBoarding.Products
 
         public override async Task<PagedResultDto<ProductDto>> GetListAsync(PagedAndSortedResultRequestDto input)
         {
-            //override get + filter + pagging
-            var queryable = await Repository.WithDetailsAsync(x => x.variants);
-            var resultList = queryable.Skip(input.SkipCount).Take(input.MaxResultCount).OrderBy(c => c.Name).ToList();
+            var query = await CreateFilteredQueryAsync(input);
+            var totalCount = await AsyncExecuter.CountAsync(query);
 
-            List<ProductDto> productDtos = await MapToGetListOutputDtosAsync(resultList);
-            long totalCount = productDtos.Count();
-
+            query = ApplySorting(query, input);
+            query = ApplyPaging(query, input);
+            
+            var resultList = await AsyncExecuter.ToListAsync(query);
+            var productDtos = await MapToGetListOutputDtosAsync(resultList);
+            
             return new PagedResultDto<ProductDto>(totalCount, productDtos);
+
         }
 
         public override async Task<ProductDto> GetAsync(Guid id)
         {
             var queryable = await Repository.WithDetailsAsync(x => x.variants);
             var result = queryable.Where(x => x.Id == id).FirstOrDefault();
-
+            
             if (result != null)
             {
                 var productDto = await MapToGetOutputDtoAsync(result);
@@ -185,7 +188,7 @@ namespace WhyzrOnBoarding.Products
 
             if (entity.variants.IsNullOrEmpty())
             {
-                entity.variants.Add(new Variant()); // new list?
+                entity.variants.Add(new Variant());
             }
             return Task.CompletedTask;
         }
@@ -204,7 +207,7 @@ namespace WhyzrOnBoarding.Products
                 throw new ValidationException("");
             }
 
-            //handle deleted variant ??
+            //handle deleted variant
             /*if (!product.variants.IsNullOrEmpty())
             {
                 var VariantIdsToDelete = product.variants.Select(x => x.Id).ToList();
