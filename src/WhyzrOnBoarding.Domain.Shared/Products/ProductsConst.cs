@@ -18,6 +18,10 @@ namespace WhyzrOnBoarding.Products
             public const string ErrorIdIsEmpty = "IdIsEmpty";
             public const string ErrorProductNotFound = "ProductNotFound";
             public const string ErrorNewVariantShouldNotHaveId = "NewVariantShouldNotHaveId";
+            public const string ErrorResultUpdateException = "ResultUpdateException";
+            public const string ErrorResultCreateException = "ResultCreateException";
+            public const string ErrorValidationException = "ValidationException"; 
+
         }
     }
 }

@@ -4,11 +4,17 @@
     "Menu:Home": "Home",
     "Welcome": "Welcome",
     "LongWelcomeMessage": "Welcome to the application. This is a startup project based on the ABP framework. For more information, visit abp.io.",
-    "IdVariantIsNotExist": "sent id {0} of Vaiant is not exist before",
+    "IdVariantIsNotExist": "sent id of Vaiant is not exist before : {0} ",
     "IdSentNotEqualIdInput": "Id sent: {0}  is not Equal id pf input object {1}",
     "IdIsEmpty": "id is empty",
     "ProductNotFound": "Product Not Found",
-    "NewVariantShouldNotHaveId": "New variant should not have id"
-
+    "NewVariantShouldNotHaveId": "New variant should not have id",
+    "ResultUpdateException": "Result Update Exception",
+    "ResultCreateException": "Result Create Exception",
+    "ValidationException": "Validation Exception",
+    "Permission:Products": "Product Management",
+    "Permission:Products.Create": "Creating new Products",
+    "Permission:Products.Edit": "Editing the Products",
+    "Permission:Products.Delete": "Deleting the Products"
   }
 }

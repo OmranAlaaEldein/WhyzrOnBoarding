@@ -8,6 +8,8 @@ using Volo.Abp.Application.Dtos;
 using Shouldly;
 using AutoMapper;
 using Volo.Abp.Validation;
+using Volo.Abp.Domain.Entities;
+using System.ComponentModel.DataAnnotations;
 
 namespace WhyzrOnBoarding.Products
 {
@@ -109,7 +111,7 @@ namespace WhyzrOnBoarding.Products
                 await _productAppService.CreateAsync(
                 new CreateUpdateProductDto
                 {
-                    Name = "Should_No_Create_Product_With_Empty_Name",
+                    Name = "",
                     OptionA = "size"
                 }
             );
@@ -137,7 +139,8 @@ namespace WhyzrOnBoarding.Products
                 {
                     Id = product.Id,
                     Name = "update Product",
-                    OptionA = "model"
+                    OptionA = "model",
+                    variants=new List<CreateUpdateVariantDto>()
                 }
             );
             //Assert
@@ -165,7 +168,7 @@ namespace WhyzrOnBoarding.Products
                     {
                         Id = product.Id,
                         Name = "",
-                        OptionA = "model"
+                        OptionA = product.OptionA
                     }
                 );
 
@@ -175,64 +178,31 @@ namespace WhyzrOnBoarding.Products
         }
 
         [Fact]
-        public async Task Should_No_Update_Product_With_Id_Empty()
+        public async Task Should_No_Update_Product_With_Empty_Id()
         {
-            var exception = await Assert.ThrowsAsync<AbpValidationException>(async () =>
+            var exception = await Assert.ThrowsAsync<ValidationException>(async () =>
             {
                 var product = await _productAppService.CreateAsync(
               new CreateUpdateProductDto
               {
-                  Name = "Should_No_Update_Product_With_Id_Empty",
+                  Name = "Should_No_Update_Product_With_Empty_Id",
                   OptionA = "size"
               }
           );
 
                 var result = await _productAppService.UpdateAsync(
-                    product.Id,
-                    new CreateUpdateProductDto
-                    {
-                        Id = Guid.Empty,
-                        Name = "",
-                        OptionA = "model"
-                    }
-                );
-
-            });
-            exception.ValidationErrors
-                .ShouldContain(err => err.MemberNames.Any(m => m == "Id"));
-
-        }
-
-        [Fact]
-        public async Task Should_Update_Product_With_Id_Not_Exist()
-        {
-            var exception = await Assert.ThrowsAsync<AbpValidationException>(async () =>
-            {
-                var product = await _productAppService.CreateAsync(
-          new CreateUpdateProductDto
-          {
-              Name = "Should_Update_Product_With_Id_Not_Exist",
-              OptionA = "size"
-          }
-      );
-
-                var result = await _productAppService.UpdateAsync(
-                    Guid.NewGuid(),
+                    Guid.Empty,
                     new CreateUpdateProductDto
                     {
                         Id = product.Id,
-                        Name = "",
-                        OptionA = "model"
+                        Name = product.Name,
+                        OptionA = product.OptionA
                     }
                 );
 
             });
-            exception.ValidationErrors
-                .ShouldContain(err => err.MemberNames.Any(m => m == "Id"));
-
+            exception.Data.Values.OfType<ValidationResult>().Any(x=>x.ErrorMessage.Equals("id is empty"));
         }
-
-
 
         [Fact]
         public async Task Should_Update_Product_With_CRUD_Variant()
@@ -292,7 +262,7 @@ namespace WhyzrOnBoarding.Products
         [Fact]
         public async Task Should_No_Update_Product_With_Error_Id__Variant()
         {
-            var exception = await Assert.ThrowsAsync<AbpValidationException>(async () =>
+            var exception = await Assert.ThrowsAsync<ValidationException>(async () =>
             {
                 List<CreateUpdateVariantDto> listVariants = new List<CreateUpdateVariantDto> {
                 new CreateUpdateVariantDto { Price = 300, ValueOPtionA = "blue" },
@@ -310,7 +280,7 @@ namespace WhyzrOnBoarding.Products
                 var variant = product.variants.Where(x => x.ValueOPtionA == "blue").FirstOrDefault();
 
                 listVariants = new List<CreateUpdateVariantDto> {
-                new CreateUpdateVariantDto { Id=Guid.NewGuid(), Price = variant.Price, ValueOPtionA = variant.ValueOPtionA }
+                new CreateUpdateVariantDto { Id=Guid.Parse("d27a80c0-b93f-b5af-eddc-3a02ec6b5995"), Price = variant.Price, ValueOPtionA = variant.ValueOPtionA }
             };
                 var result = await _productAppService.UpdateAsync(
                     product.Id,
@@ -324,29 +294,32 @@ namespace WhyzrOnBoarding.Products
                 );
 
             });
-            exception.ValidationErrors.ShouldContain(err => err.MemberNames.Any(m => m == "Id"));
+
+            exception.Data.Values.OfType<ValidationResult>().Any(x => x.ErrorMessage.Equals("sent id of Vaiant is not exist before : d27a80c0-b93f-b5af-eddc-3a02ec6b5995 "));
         }
 
         /////Delete
         [Fact]
         public async Task Should_Delete_Product()
         {
-            //Act
-            var product = await _productAppService.CreateAsync(
-                new CreateUpdateProductDto
-                {
-                    Name = "Delete Product",
-                    OptionA = "size"
-                }
-            );
+            var exception = await Assert.ThrowsAsync<EntityNotFoundException>(async () =>
+            {    //Act
+                var product = await _productAppService.CreateAsync(
+                        new CreateUpdateProductDto
+                        {
+                            Name = "Delete Product",
+                            OptionA = "size"
+                        }
+                    );
 
-            await _productAppService.DeleteAsync(product.Id);
+                await _productAppService.DeleteAsync(product.Id);
 
-            var result = await _productAppService.GetAsync(product.Id);
-
+                var result = await _productAppService.GetAsync(product.Id);
+            });
             //Assert
-            result.ShouldBe(null);
-        }
+            exception.ShouldBeOfType(typeof(EntityNotFoundException)) ;
+            
+            }
 
     }
 }
